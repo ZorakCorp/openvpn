@@ -6,3 +6,6 @@ which is located at:
 http://openvpn.net/howto.html
 
 See also the openvpn-examples man page.
+
+ hardened/ holds optional cryptographic-floor fragments (do not rename or treat as
+ turnkey VPN configs) paired with contrib/aureon-hardening/GUIDE.rst.

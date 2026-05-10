@@ -1,5 +1,12 @@
 OpenVPN plugin examples.                            Daniel Kubec <niel@rtfm.cz>
 
+SECURITY — read before use
+  The HTTP demo is cleartext (no TLS) and only suitable for lab use. Any host
+  that can reach the listener can attempt to guess session identifiers. Use
+  bind-to-loopback (http-server.py --bind 127.0.0.1) when the client runs on the
+  same OS as the responder, keep firewalls minimal-exposure elsewhere, or place
+  a reverse proxy that enforces HTTPS in front before production deployments.
+
 Examples provided:
 
 keyingmaterialexporter.c   -- Example based on TLS Keying Material Exporters over HTTP [RFC-5705]
@@ -10,11 +17,22 @@ established an OpenVPN connecting using the --keying-material-exporter
 feature.
 
 Requires:
-OpenVPN RFC-5705 Support, OpenSSL >= 1.0.1
+OpenVPN RFC-5705 Support, OpenSSL >= 1.0.1, Python 3 (http-server/http-client demos)
+
+Lab TLS keys (HTTPS demo, self-signed):
+
+  openssl req -x509 -newkey rsa:2048 -nodes -keyout tls-key.pem \\
+    -out tls-cert.pem -days 31 -subj '/CN=vpn-sso-demo'
+
+  ./http-server.py --tls-cert tls-cert.pem --tls-key tls-key.pem
+
+  ./http-client.py --https --insecure-lab-only  # controlled lab only — never in production IAM
+
+Prefer a reverse-proxy with proper issuance + trust stores for operational systems.
 
 Files:
-  http-server.py -- Example HTTP Server listen  0.0.0.0:8080
-  http-client.py -- Example HTTP Client connect 10.8.0.1:8080 [GET /$SESSIONID]
+  http-server.py -- Example HTTP(S) SSO server (--bind/--port/--tls-cert/--tls-key)
+  http-client.py -- Example HTTP(S) client (GET /SESSIONID via --session-file/--host/--port)
 
   server.ovpn    -- Example HTTP SSO VPN Server configuration
   client.ovpn    -- Example HTTP SSO VPN Client configuration

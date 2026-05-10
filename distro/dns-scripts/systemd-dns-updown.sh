@@ -220,20 +220,32 @@ function do_resolv_conf_file {
         local addr1_var=dns_server_${n}_address_1
         local addr2_var=dns_server_${n}_address_2
         local addr3_var=dns_server_${n}_address_3
-        text="### openvpn ${dev} begin ###\n"
-        text="${text}nameserver ${!addr1_var}\n"
-        test -z "${!addr2_var}" || text="${text}nameserver ${!addr2_var}\n"
-        test -z "${!addr3_var}" || text="${text}nameserver ${!addr3_var}\n"
+        if [ -z "${!addr1_var}" ]; then
+            echo "cannot insert resolv.conf block without primary nameserver"
+            exit 1
+        fi
 
-        test -z "$dns_search_domain_1" || {
-            for i in $(seq 1 6); do
-                eval domains=\"$domains\$dns_search_domain_${i} \" || break
-            done
-            text="${text}search $domains\n"
-        }
-        text="${text}### openvpn ${dev} end ###"
+        ovpn_rf=$(mktemp)
+        {
+            printf '### openvpn %s begin ###\n' "$dev"
+            printf 'nameserver %s\n' "${!addr1_var}"
+            test -z "${!addr2_var}" || printf 'nameserver %s\n' "${!addr2_var}"
+            test -z "${!addr3_var}" || printf 'nameserver %s\n' "${!addr3_var}"
 
-        sed -i "1i${text}" "$conf"
+            test -z "$dns_search_domain_1" || {
+                domains=""
+                for i in $(seq 1 6); do
+                    eval dd=\"\$dns_search_domain_${i}\"
+                    [ -z "$dd" ] && break
+                    domains="${domains:+$domains }${dd}"
+                done
+                [ -z "$domains" ] || printf 'search %s\n' "${domains}"
+            }
+            printf '### openvpn %s end ###\n' "$dev"
+        } >"$ovpn_rf"
+
+        sed -i "1r $ovpn_rf" "$conf"
+        rm -f "$ovpn_rf"
     else
         echo "unsetting DNS using resolv.conf file"
         sed -i "/### openvpn ${dev} begin ###/,/### openvpn ${dev} end ###/d" "$conf"

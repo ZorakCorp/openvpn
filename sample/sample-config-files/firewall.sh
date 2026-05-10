@@ -1,5 +1,10 @@
 #!/bin/sh
 
+if ! PATH="/sbin:/usr/sbin:${PATH:-}" command -v iptables >/dev/null 2>&1; then
+    echo >&2 "$0: iptables not found"
+    exit 1
+fi
+
 # A Sample OpenVPN-aware firewall.
 
 # eth0 is connected to the internet.

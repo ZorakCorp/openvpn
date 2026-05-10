@@ -1,0 +1,10 @@
+# Client-side cryptographic floor / server identity expectation.
+# Verify X.509 DN/CN externally (e.g. --verify-x509-name) alongside these TLS controls.
+
+tls-version-min 1.2
+
+remote-cert-tls server
+
+
+data-ciphers AES-256-GCM:CHACHA20-POLY1305:AES-128-GCM
+tls-ciphersuites TLS_AES_256_GCM_SHA384:TLS_AES_128_GCM_SHA256:TLS_CHACHA20_POLY1305_SHA256

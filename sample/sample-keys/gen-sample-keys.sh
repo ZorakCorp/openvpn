@@ -3,6 +3,9 @@
 # Run this script to set up a test CA, and test key-certificate pair for a
 # server, and various clients.
 #
+# Demo-only: pass:password appear below for PKCS#12 / encrypted key examples;
+# never reuse in production.
+#
 # Copyright (C) 2014-2026 Steffan Karger <steffan@karger.me>
 set -eu
 
@@ -15,8 +18,12 @@ then
 fi
 
 # Generate static key for tls-auth (or static key mode)
-top_builddir="${top_builddir:-$(dirname ${0})/../..}"
-${top_builddir}/src/openvpn/openvpn --genkey tls-auth ta.key
+top_builddir="${top_builddir:-$(dirname "$0")/../..}"
+if [ ! -x "${top_builddir}/src/openvpn/openvpn" ]; then
+    echo >&2 "OpenVPN binary not found at ${top_builddir}/src/openvpn/openvpn — build OpenVPN first or set top_builddir."
+    exit 1
+fi
+"${top_builddir}/src/openvpn/openvpn" --genkey tls-auth ta.key
 
 # Create required directories and files
 mkdir -p sample-ca

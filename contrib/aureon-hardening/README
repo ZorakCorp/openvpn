@@ -1,0 +1,8 @@
+Aureon-oriented hardening pack (operational baseline, not certification).
+
+contents:
+  GUIDE.rst              Consolidated posture guide (architecture, PKI, ops, assurance).
+  audit_ovpn_config.py  Stdlib-only heuristic auditor for *.ovpn config fragments.
+
+Start with GUIDE.rst, then merge hardened fragments from
+sample/sample-config-files/hardened/ deliberately into site configs.

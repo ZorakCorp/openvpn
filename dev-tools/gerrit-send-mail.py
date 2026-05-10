@@ -29,9 +29,17 @@ import dateutil.parser
 import requests
 
 
+_REQ_TIMEOUT = (10, 120)
+
+
 def get_details(args):
     params = {"o": ["CURRENT_REVISION", "LABELS", "DETAILED_ACCOUNTS"]}
-    r = requests.get(f"{args.url}/changes/{args.changeid}", params=params)
+    r = requests.get(
+        f"{args.url}/changes/{args.changeid}",
+        params=params,
+        timeout=_REQ_TIMEOUT,
+    )
+    r.raise_for_status()
     print(r.url)
     json_txt = r.text.removeprefix(")]}'\n")
     json_data = json.loads(json_txt)
@@ -78,8 +86,10 @@ def get_details(args):
 
 def get_patch(details, args):
     r = requests.get(
-        f"{args.url}/changes/{args.changeid}/revisions/{details['revision']}/patch?download"
+        f"{args.url}/changes/{args.changeid}/revisions/{details['revision']}/patch?download",
+        timeout=_REQ_TIMEOUT,
     )
+    r.raise_for_status()
     print(r.url)
     patch_text = base64.b64decode(r.text).decode()
     return patch_text

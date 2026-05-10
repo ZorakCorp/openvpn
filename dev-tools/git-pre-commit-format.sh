@@ -57,7 +57,7 @@ if [ "$1" = "install" ] ; then
     read -p "Install as $TARGET? [y/N] " INPUT
     [ "$INPUT" = "y" ] || exit 0
     cp "$0" "$TARGET"
-    chmod +x $TARGET
+    chmod +x "$TARGET"
     exit 0
 fi
 
@@ -117,6 +117,11 @@ fi
 patch=$(mktemp /tmp/ovpn-fmt-patch-XXXXXX)
 tmpout=$(mktemp /tmp/ovpn-fmt-tmp-XXXXXX)
 
+cleanup_ovpn_tmpout () {
+    [ -n "$tmpout" ] && rm -f "$tmpout"
+}
+trap cleanup_ovpn_tmpout EXIT INT HUP
+
 # create one patch containing all changes to the files
 # sed to remove quotes around the filename, if inserted by the system
 # (done sometimes, if the filename contains special characters, like the quote itself)
@@ -158,21 +163,23 @@ rm -f "$tmpout"
 
 # if no patch has been generated all is ok, clean up the file stub and exit
 if [ ! -s "$patch" ] ; then
+    trap - EXIT INT HUP
     rm -f "$patch"
+    cleanup_ovpn_tmpout
     exit 0
 fi
 
 # a patch has been created, notify the user and exit
 printf "Formatting of some code does not follow the project guidelines.\n"
 
-if [ $(wc -l < $patch) -gt 80 ] ; then
-    printf "The file $patch contains the necessary fixes.\n"
+if [ "$(wc -l < "$patch")" -gt 80 ] ; then
+    printf "The file %s contains the necessary fixes.\n" "$patch"
 else
     printf "Here's the patch that fixes the formatting:\n\n"
-    cat $patch
+    cat "$patch"
 fi
 
-printf "\nYou can apply these changes with:\n git apply $patch\n"
+printf "\nYou can apply these changes with:\n git apply \"%s\"\n" "$patch"
 printf "(from the root directory of the repository) and then commit again.\n"
 printf "\nAborting commit.\n"
 

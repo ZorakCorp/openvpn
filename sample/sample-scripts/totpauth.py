@@ -40,21 +40,67 @@ import pyotp
 # auth-user-pass-verify /path/to/totpauth.py via-file
 # auth-user-pass-optional
 # auth-gen-token
+#
+# Prefer OPENVPN_TOTP_SECRETS_FILE (root:root 0600 recommended) containing:
+#     # comments allowed
+#     Test-Client=BASE32SHAREDSECRET...
 
 # Note that this script does NOT verify username/password
 # It is only meant for querying additional 2FA when certificates are
 # used to authenticate
 
 
-# For this demo script we hardcode the TOTP secrets in a simple dictionary.
-secrets = {"Test-Client": "OS6JDNRK2BNUPQVX",
-           "Client-2": "IXWEMP7SK2QWSHTG"}
+def _secrets_from_demo():
+    sys.stderr.write(
+        "WARNING: totpauth.py is using baked-in demonstration secrets "
+        "(OPENVPN_TOTP_SECRETS_FILE not set).\nUse OPENVPN_TOTP_SECRETS_FILE "
+        "in production.\n\n"
+    )
+    return {"Test-Client": "OS6JDNRK2BNUPQVX", "Client-2": "IXWEMP7SK2QWSHTG"}
+
+
+def load_secrets():
+    """
+    Preferred: set OPENVPN_TOTP_SECRETS_FILE to a root-owned file readable only by
+    the OpenVPN UID, with CN=BASE32SECRET lines (# for comments).
+
+    Fallback: insecure demo secrets (see README).
+    """
+    path = os.environ.get("OPENVPN_TOTP_SECRETS_FILE")
+    if not path:
+        return _secrets_from_demo()
+    secrets = {}
+    try:
+        with open(path, encoding="utf-8") as fh:
+            for lineno, raw in enumerate(fh, start=1):
+                line = raw.strip()
+                if not line or line.startswith("#"):
+                    continue
+                if "=" not in line:
+                    sys.stderr.write(
+                        f"{path}:{lineno}: line must be CN=SECRET, skipping\n"
+                    )
+                    continue
+                cn, secret = line.split("=", 1)
+                cn, secret = cn.strip(), secret.strip()
+                if cn and secret:
+                    secrets[cn] = secret
+                else:
+                    sys.stderr.write(f"{path}:{lineno}: empty CN or SECRET, skipping\n")
+    except OSError as e:
+        sys.stderr.write(f"Could not load OPENVPN_TOTP_SECRETS_FILE {path!r}: {e}\n")
+        sys.exit(1)
+    if not secrets:
+        sys.stderr.write(f"No usable entries in secrets file {path!r}\n")
+        sys.exit(1)
+    return secrets
 
 
 def main():
     # Get common name and script type from environment
-    script_type = os.environ['script_type']
-    cn = os.environ['common_name']
+    secrets = load_secrets()
+    script_type = os.environ["script_type"]
+    cn = os.environ["common_name"]
 
     if script_type == 'user-pass-verify':
         # signal text based challenge response
@@ -82,7 +128,8 @@ def main():
             response = response.decode().strip()
 
         if cn not in secrets:
-            write_auth_control(1)
+            # Never succeed without a mapped secret once we expected a CR response.
+            write_auth_control(0)
             return
 
         totp = pyotp.TOTP(secrets[cn])

@@ -56,10 +56,15 @@ def load_crl(filename, format):
 
     def try_openssl_exec(filename, format):
         args = ['openssl', 'crl', '-inform', format, '-text']
-        if filename != '-':
+        if filename == '-':
+            args += ['-in', '-']
+            raw = check_output(args, input=sys.stdin.buffer.read())
+            out = raw.decode()
+        else:
             args += ['-in', filename]
+            out = check_output(args, universal_newlines=True)
         serials = set()
-        for line in check_output(args, universal_newlines=True).splitlines():
+        for line in out.splitlines():
             _, _, serial = line.partition('Serial Number:')
             if serial:
                 serials.add(int(serial.strip(), 16))

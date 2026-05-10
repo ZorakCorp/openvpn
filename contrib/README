@@ -1,2 +1,6 @@
 This directory contains scripts and patches contributed
 by users.
+
+Subdirectory notes:
+
+ * aureon-hardening/ — high-assurance deployment guide + config audit helper

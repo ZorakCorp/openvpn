@@ -68,23 +68,19 @@ dns-up)
     {
         i=1
         maxns=3
-        while :; do
-            maxns=$((maxns - 1))
-            [ $maxns -gt 0 ] || break
-            eval option=\"\$dns_server_${n}_address_${i}\" || break
-            [ "${option}" ] || break
-            i=$((i + 1))
+        while [ "$i" -le "$maxns" ]; do
+            eval option=\"\$dns_server_${n}_address_${i}\"
+            [ -n "${option}" ] || break
             echo "nameserver ${option}"
+            i=$((i + 1))
         done
         i=1
         maxdom=6
-        while :; do
-            maxdom=$((maxdom - 1))
-            [ $maxdom -gt 0 ] || break
-            eval option=\"\$dns_search_domain_${i}\" || break
-            [ "${option}" ] || break
-            i=$((i + 1))
+        while [ "$i" -le "$maxdom" ]; do
+            eval option=\"\$dns_search_domain_${i}\"
+            [ -n "${option}" ] || break
             echo "search ${option}"
+            i=$((i + 1))
         done
     } | /sbin/resolvconf -a "${dev}"
     ;;

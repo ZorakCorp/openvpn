@@ -53,28 +53,29 @@ $service = "login";
 
 # Get username/password from file
 
-if ($ARG = shift @ARGV) {
-    if (!open (UPFILE, "<$ARG")) {
-	print "Could not open username/password file: $ARG\n";
+my $upfile_arg;
+if ($upfile_arg = shift @ARGV) {
+    if (!open (my $UPFILE, '<', $upfile_arg)) {
+	print "Could not open username/password file: ", $upfile_arg, "\n";
 	exit 1;
     }
+
+    $username = <$UPFILE>;
+    $password = <$UPFILE>;
+
+    if (!$username || !$password) {
+	print "Username/password not found in file: ", $upfile_arg, "\n";
+	exit 1;
+    }
+
+    chomp $username;
+    chomp $password;
+
+    close $UPFILE;
 } else {
     print "No username/password file specified on command line\n";
     exit 1;
 }
-
-$username = <UPFILE>;
-$password = <UPFILE>;
-
-if (!$username || !$password) {
-    print "Username/password not found in file: $ARG\n";
-    exit 1;
-}
-
-chomp $username;
-chomp $password;
-
-close (UPFILE);
 
 # Initialize PAM object
 

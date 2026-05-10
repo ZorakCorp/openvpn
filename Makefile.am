@@ -58,6 +58,7 @@ SUBDIRS = distro include src sample doc tests
 
 dist_doc_DATA = \
 	README \
+	README.md \
 	README.mbedtls \
 	Changes.rst \
 	COPYRIGHT.GPL \
