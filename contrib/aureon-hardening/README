@@ -1,8 +1,15 @@
 Aureon-oriented hardening pack (operational baseline, not certification).
 
 contents:
-  GUIDE.rst              Consolidated posture guide (architecture, PKI, ops, assurance).
-  audit_ovpn_config.py  Stdlib-only heuristic auditor for *.ovpn config fragments.
+  GUIDE.rst                 Consolidated posture guide (architecture, PKI, ops, assurance).
+  report_meta.py               Shared correlation envelope for JSON / audit-log lines.
+  audit_ovpn_config.py      Stdlib-only heuristic auditor for *.ovpn config fragments.
+  device_health_scan.py        Explicit-consent read-only filesystem inventory + optional scanners.
+  device_remediate_phase2.py   Phase-2 cockpit: DNS/ARP/trace, disk bench, dupes/Appx/flatpak manifests + GUI + audit JSONL.
+  aureon_doctor.py             Chains Wi‑Fi/metrics/DNS/heuristic audit (+ optional inventory) into one JSON bundle.
+  export_audit_bundle.py       Zip reports with MANIFEST.json + SHA-256 index (handoff artefact).
+  tests/                       Pytest snippets (audit heuristics); CI workflow: .github/workflows/aureon-hardening.yml
+  ts/                       Strict TypeScript CLIs mirroring audit / health scan / phase2 (Node 18+). Build: npm install && npm run build; run node dist/cli.js …
 
 Start with GUIDE.rst, then merge hardened fragments from
 sample/sample-config-files/hardened/ deliberately into site configs.

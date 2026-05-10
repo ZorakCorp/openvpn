@@ -172,7 +172,131 @@ Never ship self-signed verifier-disable patterns to browsers in production IAM
 paths.
 
 -------------------------------------------------------------------------------
-10. References inside this tree
+10. Endpoint inventory scanner (explicit consent, READ-ONLY)
+-------------------------------------------------------------------------------
+
+Commercial security stacks combine **drivers**, **signatures**, **behaviour rules**,
+telemetry, cloud reputation, **quarantine/remediation workflows**, SOAR playbooks—and
+often managed SOC review. ``device_health_scan.py`` is deliberately **narrow**:
+
+* authorised **explicit consent flag** (--ack-readonly-inventory),
+
+* bounded file walk with **deterministic summaries**,
+
+* **no covert upload** of filenames or payloads—only stdout/stderr you choose to save,
+
+* **optional** invocation of vendor tools you installed (``clamscan``) or documented
+  Windows Defender hooks—with clear labelling inside the emitted JSON/report.
+
+* optional **``--run-id``** / **``--host-label``** / **``--tenant``** fields embedded as **``report_meta``**
+  in ``--json`` output for pipeline correlation.
+
+::
+
+  python3 contrib/aureon-hardening/device_health_scan.py --ack-readonly-inventory \\
+        --roots "$HOME/Documents" \\
+        --stale-days 730 --stale-by mtime \\
+        --json > host-inventory-$(date -u +%Y%m%dT%H%MZ).json
+
+
+Never treat this enumerator as antivirus. Feed findings into **authorised EDR/AV**
+workstreams and organisational change-management—especially before deleting or moving
+bulk data surfaced as "cold."
+
+-------------------------------------------------------------------------------
+11. Phase-2 guided remediation (destructive only with manifest + ack)
+-------------------------------------------------------------------------------
+
+``device_remediate_phase2.py`` extends the House of Asher / Aureon endpoint suite with
+**inventory + optional remediation** that still refuses naïve single-click wipe behaviour.
+
+**Read-oriented / low risk subcommands**
+
+* ``wifi`` · ``metrics`` — radio / host quick views (see inline honesty strings).
+* ``dns-probe`` — ``nslookup`` (Windows) / ``dig`` (Unix) latency snapshot.
+* ``trace-lite TARGET`` — shortened ``tracert``/``traceroute``/``tracepath`` hop view.
+* ``arp-snapshot`` — ARP / neighbour cache export (not spoofing detection).
+* ``browser-cache-scan`` — estimates cache directory weight (capped walk).
+* ``startup-inventory`` (Windows) · ``systemd-user-hints`` (Linux) — autorun context.
+* ``battery-report --out`` — Windows ``powercfg`` HTML report.
+* ``manifest-sha256 FILE`` — CI / policy digest hook for signed-off JSON.
+
+**Consent-gated IO bench**
+
+* ``disk-bench`` — sequential read/write MB/s inside **your** directory; needs
+  ``--execute-ack EXECUTE_PHASE2_DISK_BENCH``.
+
+**Manifest pipelines (defaults ``approved:false`` everywhere)**
+
+* ``cleanup-plan`` / ``cleanup-apply`` — large file removal (``EXECUTE_PHASE2_DELETE``).
+* ``dupes-plan`` / ``dupes-apply`` — hashed duplicate cohorts (``EXECUTE_PHASE2_DELETE_DUPES``).
+* ``apps-plan`` / ``apps-apply`` — Windows Appx removal (``EXECUTE_PHASE2_UNINSTALL_APPX``).
+* ``flatpak-plan`` / ``flatpak-apply`` — Linux flatpak removal (``EXECUTE_PHASE2_FLATPAK_RM``).
+
+Optional **``--manifest-sha256``** on every destructive apply compares the on-disk JSON
+before execution. Optional **``--audit-log PATH``** appends JSON-lines for accountability
+(forward with your SIEM/agent if policy demands). Each JSONL line is lexicographically key-sorted
+with a leading **``utc``** field; optional **``--run-id``**, **``--host-label``**, and **``--tenant``**
+are merged into emitted JSON as **``report_meta``** / audit context for correlation.
+
+**Apply dry-runs**
+
+Destructive applies accept **``--dry-run``**: manifest + acknowledgement are still required; the
+tool prints ``[dry-run]`` actions and appends JSONL ``would_*`` rows without deleting or uninstalling.
+
+**Windows task scheduler (lightweight)**
+
+* ``tasks-snapshot`` — ``schtasks /query /fo CSV`` (truncated)—complements ``startup-inventory``.
+
+**Tkinter cockpit**
+
+* ``gui`` — surfaces Wi-Fi, DNS, ARP, traceroute-lite, caches, Windows startup JSON,
+  plus plan/apply stubs (typed token still enforced on apply).
+
+Operational rule: there is **still** no faithful replacement for commercial EDR—you are
+accountable for manifest contents, ``allowed_roots`` scoping, backups, and organisational
+change control.
+
+::
+
+  python3 contrib/aureon-hardening/device_remediate_phase2.py metrics
+  python3 contrib/aureon-hardening/device_remediate_phase2.py dns-probe --query openvpn.net
+  python3 contrib/aureon-hardening/device_remediate_phase2.py trace-lite one.one.one.one
+  python3 contrib/aureon-hardening/device_remediate_phase2.py gui
+
+-------------------------------------------------------------------------------
+12. Orchestration / handoff artefacts
+-------------------------------------------------------------------------------
+
+**Doctor bundle (read-heavy chain)**
+
+Run ``aureon_doctor.py`` to execute Wi-Fi sweep, metrics, DNS probe, optional ``audit_ovpn_config.py``
+against supplied ``.ovpn`` paths, plus ``device_health_scan.py`` when you pass explicit inventory
+consent::
+
+  python3 contrib/aureon-hardening/aureon_doctor.py --ack-readonly-inventory \\
+        --configs path/to/site.ovpn --strict --json > doctor-bundle.json
+
+``--strict`` exits non-zero if any probe subprocess returned an error — omit it for exploratory runs.
+
+**JSONL retention (``--audit-log``)**
+
+Treat audit logs as tier-1 artefacts: immutable storage or WORM-equivalent bucket, predictable
+maximum line length, ingest-time SHA-256 of each file chunk in your downstream logging stack, and a
+published retention/disposal schedule mapped to organisational policy (these scripts never auto-delete
+logs).
+
+**Handoff ZIP**
+
+Package JSON reports plus redacted artefacts using ``export_audit_bundle.py``::
+
+  python3 contrib/aureon-hardening/export_audit_bundle.py --out aureon-handoff.zip r1.json r2.jsonl
+
+``device_health_scan`` JSON emits the same optional **``report_meta``** correlation envelope at the top
+level (**``emitter``**, **``run_id``**, …).
+
+-------------------------------------------------------------------------------
+13. References inside this tree
 -------------------------------------------------------------------------------
 
 * ``sample/sample-config-files/hardened/server.fragment``

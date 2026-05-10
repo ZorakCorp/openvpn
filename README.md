@@ -20,6 +20,9 @@ This repository is **not** the official OpenVPN Inc. release tree. It tracks ups
 | **Integrity** | Audited script surfaces (Python/shell/Perl demos), safer temp handling, stricter auth logic in samples |
 | **Posture** | [`contrib/aureon-hardening/GUIDE.rst`](./contrib/aureon-hardening/GUIDE.rst) — architecture, crypto floors, management plane, IR, supply chain |
 | **Verification** | [`contrib/aureon-hardening/audit_ovpn_config.py`](./contrib/aureon-hardening/audit_ovpn_config.py) — stdlib heuristic config sweep |
+| **Endpoint posture** | [`contrib/aureon-hardening/device_health_scan.py`](./contrib/aureon-hardening/device_health_scan.py) — READ-ONLY storage/staleness audit (not AV) |
+| **Guided remediation** | [`contrib/aureon-hardening/device_remediate_phase2.py`](./contrib/aureon-hardening/device_remediate_phase2.py) — DNS/ARP/traceroute, disk bench, **dupes** + **cleanup** + **Appx** + **flatpak** manifests, optional **SHA‑256** gate + **audit JSONL**, Tkinter cockpit |
+| **Doctor & handoff** | [`contrib/aureon-hardening/aureon_doctor.py`](./contrib/aureon-hardening/aureon_doctor.py) (chained probes) · [`export_audit_bundle.py`](./contrib/aureon-hardening/export_audit_bundle.py) (zip + manifest) |
 | **Fragments** | [`sample/sample-config-files/hardened/`](./sample/sample-config-files/hardened/) — merge-after-policy TLS/client-server baselines |
 
 ---

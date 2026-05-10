@@ -1,0 +1,27 @@
+name: Aureon hardening tests
+
+on:
+  push:
+    paths:
+      - "contrib/aureon-hardening/**"
+      - ".github/workflows/aureon-hardening.yml"
+  pull_request:
+    paths:
+      - "contrib/aureon-hardening/**"
+      - ".github/workflows/aureon-hardening.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  pytest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install pytest
+        run: python -m pip install --upgrade pip pytest
+      - name: Run Aureon unit tests
+        run: python -m pytest contrib/aureon-hardening/tests -q

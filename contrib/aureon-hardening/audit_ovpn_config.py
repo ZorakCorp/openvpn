@@ -81,6 +81,18 @@ _RULES_INLINE: tuple[tuple[str, re.Pattern[str], str], ...] = (
         re.compile(r"^\s*comp-lzo\b"),
         "comp-lzo is obsolete; remove unless isolated legacy enclave — see project guidance",
     ),
+    (
+        "WARNING",
+        re.compile(r"^\s*tls-ciphers\s+.+\b(3des|des-|rc4|md5|null|anon)\b"),
+        "tls-ciphers lists weak or obsolete patterns — prefer tls-ciphersuites + modern AEAD posture",
+    ),
+    (
+        "WARNING",
+        re.compile(
+            r"^\s*data-ciphers\s+.+\b(bf-cbc|des-|3des|cast5|rc4|md5)\b"
+        ),
+        "data-ciphers includes legacy patterns — prefer negotiated AES-GCM / ChaCha20-Poly1305 class AEAD",
+    ),
 )
 
 
@@ -118,12 +130,27 @@ def _check_duplicate_cn(low: str, lineno: int) -> Iterable[Finding]:
 
 
 def _check_tls_secret(low: str, lineno: int) -> Iterable[Finding]:
-    if re.match(r"^\s*(secret|tls-auth|tls-crypt)\b", low):
+    if re.match(r"^\s*(secret|tls-auth|tls-crypt|tls-crypt-v2)\b", low):
         return (
             Finding(
                 "INFO",
                 lineno,
-                "Static symmetric key material (tls-auth/tls-crypt/secret) — rotate using controlled procedure if disclosed",
+                "Static symmetric key material (tls-auth/tls-crypt*/secret) — rotate using controlled procedure if disclosed",
+            ),
+        )
+    return ()
+
+
+def _check_crypto_material_paths(low: str, lineno: int) -> Iterable[Finding]:
+    if re.match(
+        r"^\s*(ca|cert|key|dh|extra-certs|pkcs12|pkcs15)\s+\S",
+        low,
+    ):
+        return (
+            Finding(
+                "INFO",
+                lineno,
+                "Referenced CA/cert/key/material path — verify host filesystem ACLs off-box; this heuristic does not read the path",
             ),
         )
     return ()
@@ -133,7 +160,22 @@ PROCESSORS = (
     _check_management,
     _check_duplicate_cn,
     _check_tls_secret,
+    _check_crypto_material_paths,
 )
+
+
+def _global_hints(text: str) -> list[Finding]:
+    tl = text.lower()
+    out: list[Finding] = []
+    if ("redirect-gateway" in tl or "route-gateway" in tl) and "block-outside-dns" not in tl:
+        out.append(
+            Finding(
+                "INFO",
+                None,
+                "redirect-gateway / route-gateway without block-outside-dns — review client DNS leak posture against policy",
+            )
+        )
+    return out
 
 
 def audit_text(text: str) -> list[Finding]:
@@ -145,6 +187,7 @@ def audit_text(text: str) -> list[Finding]:
                 break
         for proc in PROCESSORS:
             findings.extend(proc(low, lineno))
+    findings.extend(_global_hints(text))
     findings.sort(
         key=lambda f: (-{"CRITICAL": 4, "WARNING": 3, "INFO": 1}.get(f.severity, 0), f.line or 0)
     )
@@ -159,6 +202,9 @@ def main(argv: list[str]) -> int:
     else:
         for p in paths:
             path = Path(p)
+            if not path.is_file():
+                print(f"skip (not a regular file): {path}", file=sys.stderr)
+                continue
             blobs.append((str(path), path.read_text(encoding="utf-8", errors="replace")))
 
     worst = 0
