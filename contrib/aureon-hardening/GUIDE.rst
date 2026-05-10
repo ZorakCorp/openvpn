@@ -235,9 +235,9 @@ bulk data surfaced as "cold."
 
 Optional **``--manifest-sha256``** on every destructive apply compares the on-disk JSON
 before execution. Optional **``--audit-log PATH``** appends JSON-lines for accountability
-(forward with your SIEM/agent if policy demands). Each JSONL line is lexicographically key-sorted
-with a leading **``utc``** field; optional **``--run-id``**, **``--host-label``**, and **``--tenant``**
-are merged into emitted JSON as **``report_meta``** / audit context for correlation.
+(forward with your SIEM/agent if policy demands). Each JSONL line exposes **``utc``** first, then envelope fields (**``run_id``**, **``emitter``**, …),
+then event payload keys. Optional **``--run-id``**, **``--host-label``**, and **``--tenant``** are merged
+into emitted JSON as **``report_meta``** / audit context for correlation.
 
 **Apply dry-runs**
 

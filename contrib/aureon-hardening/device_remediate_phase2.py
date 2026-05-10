@@ -60,11 +60,11 @@ def audit_log_append(
 ) -> None:
     if not path:
         return
-    base: dict[str, Any] = {"utc": datetime.now(timezone.utc).isoformat()}
+    line_obj: dict[str, Any] = {"utc": datetime.now(timezone.utc).isoformat()}
     if envelope:
-        base.update(envelope)
-    base.update(record)
-    line = json.dumps(base, sort_keys=True) + "\n"
+        line_obj.update(envelope)
+    line_obj.update(record)
+    line = json.dumps(line_obj, sort_keys=False) + "\n"
     Path(path).parent.mkdir(parents=True, exist_ok=True)
     with open(path, "a", encoding="utf-8") as fh:
         fh.write(line)
